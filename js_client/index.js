@@ -4,12 +4,46 @@ var general = {
     getCenterMap:function(){
         return {point: {lat:23.33,long:-3.55}};
     },
+    token:'',
+    login() {
+        credentials = JSON.stringify({'email':'afacarvalho@yahoo.com.br','password':'!@12qwaszX'});
+        $.post({
+            url : "http://127.0.0.1:5000/login",
+            data : credentials,
+            headers: {
+                'Content-Type':'application/json'
+            },
+            dataType: 'json',
+            beforeSend : function(){
+                console.log('Enviando....');
+            }
+        })
+        .done(function(msg){
+            console.log(msg);
+            general.token=msg.auth_token;
+        })
+        .fail(function(jqXHR, textStatus, msg){
+            console.log(msg);
+        });
+    },
     connect: function(){
         // Connect to the Socket.IO server.
         // The connection URL has the following format:
         //     http[s]://<domain>:<port>[/<namespace>]
         //var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-        this.socket = io.connect("http://127.0.0.1:5000"+this.namespace);
+        if(!general.token) {
+            console.log('You should login before connect to websocket.');
+            return false;
+        }
+        // send the token on connection
+        this.socket = io("http://127.0.0.1:8000"+this.namespace, {
+            query: {
+              token: general.token,
+            },
+          });
+          
+        this.socket.connect();
+        
         // Event handler for new connections.
         // The callback function is invoked when a connection with the
         // server is established.
@@ -48,6 +82,11 @@ $(document).ready(function() {
     
     $('form#disconnect').submit(function(event) {
         general.socket.emit('disconnect_request');
+        return false;
+    });
+
+    $('#login').click(function(event) {
+        general.login();
         return false;
     });
 
