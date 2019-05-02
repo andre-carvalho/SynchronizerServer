@@ -27,7 +27,7 @@ deactivate
 ## To run using gunicorn use:
 
 ```sh
-gunicorn -k eventlet -w 1 -b 127.0.0.1:5000 wsgi:ws
+gunicorn -k eventlet -w 1 -b 0.0.0.0:8001 wsgi:ws
 
 # this will start in port: 8000
 gunicorn --worker-class eventlet -w 1 wsgi:ws

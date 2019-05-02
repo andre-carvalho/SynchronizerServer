@@ -32,50 +32,39 @@ socketio = SocketIO(ws, async_mode=async_mode)
 
 def getNearPoints(point):
     print('Receive new point(client center map)', point)
-    points="""[{lat:21.22,long:2.33},{lat:21.91,long:2.54},{lat:21.76,long:2.11}]"""
+    points="""'[{"lat":21.22,"lng":2.33},{"lat":21.91,"lng":2.54},{"lat":21.76,"lng":2.11}]'"""
     return points
 
 
+@socketio.on('newoccurrence', namespace='/occurrences')
+def newOccurrence(message):
+    # Message.occurrence template is: {}
+    print('newoccurrence:', message)
+    emit('occurrencebroadcast', {'occurrence': message}, broadcast=True)
 
-@ws.route('/')
-def index():
-    return render_template('index.html', async_mode=socketio.async_mode)
 
-
-@socketio.on('client_request', namespace='/occurrences')
-def test_message(message):
+@socketio.on('userposition', namespace='/occurrences')
+def userPosition(message):
     # session['receive_count'] = session.get('receive_count', 0) + 1
 
     # Compute if any points intercepts the buffer region around message.point.
     # This point is the center of map for conected client.
-    # Message.point template is: {point: {lat:23.33,long:-3.55}}
+    # Message.point template is: {point: {lat:23.33,lng:-3.55}}
     points = getNearPoints(message['point'])
-    emit('server_response',
-         {'data': 'new_point_confirmed', 'points': points})
+    emit('nearpoints', {'points': points})
 
 
-@socketio.on('broadcast_event', namespace='/occurrences')
-def test_broadcast_message(message):
+@socketio.on('pointsbroadcast', namespace='/occurrences')
+def pointsBroadcast(message):
     # session['receive_count'] = session.get('receive_count', 0) + 1
 
     # Tell to all clients that one new point was added.
     if message['data']=='new_point':
-        emit('server_response',
-            {'data': 'new_point_confirmed', 'points': '[]'},
-            broadcast=True)
-    
-
-
-@socketio.on('disconnect_request', namespace='/occurrences')
-def disconnect_request():
-    # session['receive_count'] = session.get('receive_count', 0) + 1
-    # emit('server_response',
-    #      {'data': 'Disconnected!', 'count': session['receive_count']})
-    disconnect()
-
+        points = message['points']
+        emit('nearpoints', {'points': points}, broadcast=True)
 
 @socketio.on('connect', namespace='/occurrences')
-def test_connect():
+def clientConnect():
     # global thread
     # with thread_lock:
     #     if thread is None:
@@ -83,12 +72,13 @@ def test_connect():
     #if token['data']!='':
     token = request.args.get('token')
     if isAuthorized(token):
-        emit('server_response', {'data': 'connected', 'points': '[]'})
+        emit('connected', {'data': 'connected'})
     else:
         disconnect()
 
 @socketio.on('disconnect', namespace='/occurrences')
-def test_disconnect():
+def clientDisconnect():
+    disconnect()
     print('Client disconnected', request.sid)
 
 
